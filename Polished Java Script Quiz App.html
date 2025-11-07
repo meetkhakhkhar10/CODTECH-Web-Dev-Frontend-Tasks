@@ -1,0 +1,322 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Polished JS Quiz App</title>
+  <style>
+    :root{--bg:#0f1724;--card:#0b1220;--muted:#94a3b8;--accent:#7c3aed;--accent-2:#06b6d4;--correct:#16a34a;--wrong:#dc2626}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071022 0%, #071726 60%);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+    .wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px}
+    .card{width:900px;max-width:95%;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));border-radius:14px;padding:22px;box-shadow:0 10px 30px rgba(2,6,23,0.7);border:1px solid rgba(255,255,255,0.03)}
+    header{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+    .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:20px}
+    h1{color:white;margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .controls{display:flex;gap:8px;margin-left:auto}
+    .btn{background:transparent;border:1px solid rgba(255,255,255,0.06);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-weight:600}
+    .btn.primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:white;border:0}
+    .meta{display:flex;gap:14px;align-items:center;margin:8px 0}
+    .meta .chip{background:rgba(255,255,255,0.03);padding:6px 10px;border-radius:999px;color:var(--muted);font-size:13px}
+    .main{display:grid;grid-template-columns:1fr 320px;gap:20px}
+    @media (max-width:900px){.main{grid-template-columns:1fr}}
+    .question-card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+    .q-header{display:flex;align-items:center;gap:12px}
+    .q-number{font-weight:700;color:var(--muted)}
+    .q-text{color:white;margin-top:12px;font-size:18px}
+    .choices{margin-top:14px;display:flex;flex-direction:column;gap:10px}
+    .choice{background:rgba(255,255,255,0.02);padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;color:var(--muted);font-weight:600}
+    .choice:hover{transform:translateY(-2px);transition:all .12s ease}
+    .choice.correct{background:linear-gradient(90deg, rgba(22,163,74,0.12), rgba(22,163,74,0.06));border-color:rgba(22,163,74,0.3);color:var(--correct)}
+    .choice.wrong{background:linear-gradient(90deg, rgba(220,38,38,0.08), rgba(220,38,38,0.03));border-color:rgba(220,38,38,0.25);color:var(--wrong)}
+    .choice.disabled{opacity:0.6;pointer-events:none}
+    footer.q-footer{display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+    .progress{height:10px;background:rgba(255,255,255,0.03);border-radius:999px;overflow:hidden;width:100%;border:1px solid rgba(255,255,255,0.02)}
+    .progress > i{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));width:0%}
+    .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.01));padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.02);height:100%}
+    .score{font-size:36px;color:var(--accent);font-weight:800;line-height:1}
+    .small{font-size:12px;color:var(--muted)}
+    .list{margin-top:12px;display:flex;flex-wrap:wrap;gap:8px}
+    .pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);color:var(--muted);font-weight:700;border:1px solid rgba(255,255,255,0.02)}
+    .file-row{display:flex;gap:8px;margin-top:12px}
+    input[type=file]{display:none}
+    label.filelabel{cursor:pointer;padding:8px 10px;border-radius:8px;border:1px dashed rgba(255,255,255,0.04);color:var(--muted);font-weight:700}
+    .example{margin-top:14px;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;color:var(--muted);font-size:13px}
+    .footer-note{margin-top:12px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="application">
+      <header>
+        <div class="logo">QZ</div>
+        <div>
+          <h1>Polished JavaScript Quiz</h1>
+          <p class="lead">Instant feedback, scoring, progress and dynamic question loading.</p>
+        </div>
+        <div class="controls">
+          <button id="shuffleBtn" class="btn">Shuffle</button>
+          <button id="restartBtn" class="btn">Restart</button>
+          <button id="demoBtn" class="btn primary">Load Demo Quiz</button>
+        </div>
+      </header>
+
+      <div class="meta">
+        <div class="chip">Questions: <strong id="totalQ">0</strong></div>
+        <div class="chip">Answered: <strong id="answeredCount">0</strong></div>
+        <div class="chip">Correct: <strong id="correctCount">0</strong></div>
+      </div>
+
+      <div class="main">
+        <section class="question-card" aria-live="polite">
+          <div class="q-header">
+            <div class="q-number">Question <span id="curIdx">0</span> / <span id="totalIdx">0</span></div>
+            <div style="margin-left:auto" class="small" id="timeInfo"></div>
+          </div>
+          <div class="q-text" id="questionText">No questions loaded. Click "Load Demo Quiz" or upload JSON.</div>
+
+          <div class="choices" id="choices"></div>
+
+          <footer class="q-footer">
+            <div style="width:70%">
+              <div class="progress" aria-hidden="true"><i id="progBar"></i></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <button class="btn" id="prevBtn">Prev</button>
+              <button class="btn primary" id="nextBtn">Next</button>
+            </div>
+          </footer>
+        </section>
+
+        <aside class="sidebar" aria-label="sidebar">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <div>
+              <div class="small">Score</div>
+              <div class="score" id="score">0</div>
+            </div>
+            <div style="text-align:right">
+              <div class="small">Percentage</div>
+              <div style="font-weight:800;color:var(--accent)" id="percent">0%</div>
+            </div>
+          </div>
+
+          <div class="list" id="navPills"></div>
+
+          <div class="file-row">
+            <label for="file" class="filelabel">Upload JSON</label>
+            <input id="file" type="file" accept="application/json">
+          </div>
+
+          <div class="example">
+            JSON format: <code>[{ "id":1, "q":"Question text","choices":["A","B","C","D"],"answer":1,"explanation":"Why" }]</code>
+          </div>
+
+          <div class="footer-note">Tip: load your own JSON or press "Load Demo Quiz". Click an answer to get instant feedback.</div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Simple but polished single-file quiz app
+    (function(){
+      const state = {
+        questions: [],
+        current: 0,
+        answered: {}, // id -> {selected,correct}
+        score: 0
+      }
+
+      // DOM refs
+      const totalQ = document.getElementById('totalQ');
+      const answeredCount = document.getElementById('answeredCount');
+      const correctCount = document.getElementById('correctCount');
+      const curIdx = document.getElementById('curIdx');
+      const totalIdx = document.getElementById('totalIdx');
+      const questionText = document.getElementById('questionText');
+      const choicesWrap = document.getElementById('choices');
+      const scoreEl = document.getElementById('score');
+      const percentEl = document.getElementById('percent');
+      const progBar = document.getElementById('progBar');
+      const prevBtn = document.getElementById('prevBtn');
+      const nextBtn = document.getElementById('nextBtn');
+      const navPills = document.getElementById('navPills');
+      const fileInput = document.getElementById('file');
+      const demoBtn = document.getElementById('demoBtn');
+      const restartBtn = document.getElementById('restartBtn');
+      const shuffleBtn = document.getElementById('shuffleBtn');
+      const totalIdxSpan = totalIdx;
+      const curIdxSpan = curIdx;
+      const totalQSpan = totalQ;
+      const correctCountSpan = correctCount;
+      const answeredCountSpan = answeredCount;
+
+      // Utilities
+      function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+
+      function renderMeta(){
+        totalQ.textContent = state.questions.length;
+        totalIdx.textContent = Math.max(1,state.questions.length);
+        curIdx.textContent = state.questions.length? state.current+1 : 0;
+        const answered = Object.keys(state.answered).length;
+        const correct = Object.values(state.answered).filter(x=>x.correct).length;
+        answeredCount.textContent = answered;
+        correctCount.textContent = correct;
+        scoreEl.textContent = state.score;
+        const pct = state.questions.length? Math.round((state.score / state.questions.length)*100) : 0;
+        percentEl.textContent = pct + '%';
+        const prog = state.questions.length ? Math.round(((state.current+1)/state.questions.length)*100) : 0;
+        progBar.style.width = prog + '%';
+        renderPills();
+      }
+
+      function renderPills(){
+        navPills.innerHTML = '';
+        state.questions.forEach((q,i)=>{
+          const btn = document.createElement('button');
+          btn.className = 'pill';
+          btn.textContent = i+1;
+          if(state.answered[q.id]){
+            btn.style.borderColor = state.answered[q.id].correct ? 'rgba(16,185,129,0.5)' : 'rgba(239,68,68,0.3)';
+            btn.style.color = state.answered[q.id].correct ? 'var(--correct)' : 'var(--wrong)';
+          }
+          btn.addEventListener('click',()=>{ state.current = i; render(); });
+          navPills.appendChild(btn);
+        })
+      }
+
+      function shuffle(a){
+        for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+      }
+
+      function loadQuestions(qs){
+        // Normalize: ensure each question has id, q, choices (array), answer (index), explanation optional
+        const normalized = qs.map((it,idx)=>({
+          id: it.id ?? idx+1,
+          q: it.q ?? it.question ?? 'Untitled question',
+          choices: it.choices ?? it.options ?? [],
+          answer: (typeof it.answer === 'number')? it.answer : 0,
+          explanation: it.explanation ?? it.explain ?? ''
+        }));
+        state.questions = normalized;
+        state.current = 0;
+        state.answered = {};
+        state.score = 0;
+        render();
+      }
+
+      function render(){
+        if(!state.questions.length){
+          questionText.textContent = 'No questions loaded. Click "Load Demo Quiz" or upload JSON.';
+          choicesWrap.innerHTML = '';
+          renderMeta();
+          return;
+        }
+        const q = state.questions[state.current];
+        questionText.textContent = q.q;
+        choicesWrap.innerHTML = '';
+        q.choices.forEach((choiceText, i)=>{
+          const btn = document.createElement('button');
+          btn.className = 'choice';
+          btn.setAttribute('role','button');
+          btn.setAttribute('data-index',i);
+          btn.innerHTML = `<span>${String.fromCharCode(65+i)}.</span> <span style=\"margin-left:8px\">${choiceText}</span>`;
+
+          // If already answered - show state
+          const answered = state.answered[q.id];
+          if(answered){
+            btn.classList.add('disabled');
+            if(i === answered.selected && answered.correct) btn.classList.add('correct');
+            if(i === answered.selected && !answered.correct) btn.classList.add('wrong');
+            if(i === q.answer && !answered.correct) btn.classList.add('correct');
+          } else {
+            btn.addEventListener('click', ()=> handleAnswer(q,i,btn));
+          }
+
+          choicesWrap.appendChild(btn);
+        })
+
+        prevBtn.disabled = state.current === 0;
+        nextBtn.disabled = state.current === state.questions.length-1;
+
+        renderMeta();
+      }
+
+      function handleAnswer(q, idx, btn){
+        const isCorrect = idx === q.answer;
+        state.answered[q.id] = { selected: idx, correct: isCorrect };
+        if(isCorrect) state.score += 1;
+
+        // Update UI instantly
+        // mark the choice buttons
+        Array.from(choicesWrap.children).forEach((c, i)=>{
+          c.classList.add('disabled');
+          if(i === idx){
+            c.classList.add(isCorrect ? 'correct' : 'wrong');
+          }
+          if(i === q.answer) c.classList.add('correct');
+        });
+
+        // show short explanation under choices
+        const expl = document.createElement('div');
+        expl.style.marginTop = '12px';
+        expl.style.color = 'var(--muted)';
+        expl.style.fontSize = '13px';
+        expl.textContent = q.explanation ? 'Explanation: ' + q.explanation : (isCorrect ? 'Correct ✅' : 'Incorrect — the correct answer is shown.');
+        choicesWrap.appendChild(expl);
+
+        renderMeta();
+      }
+
+      // Navigation
+      prevBtn.addEventListener('click', ()=>{ if(state.current>0) state.current--; render(); });
+      nextBtn.addEventListener('click', ()=>{ if(state.current < state.questions.length-1) state.current++; render(); });
+
+      // File upload for dynamic loading
+      fileInput.addEventListener('change', (e)=>{
+        const f = e.target.files[0];
+        if(!f) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try{
+            const parsed = JSON.parse(reader.result);
+            if(!Array.isArray(parsed)) throw new Error('JSON must be an array of questions');
+            loadQuestions(parsed);
+            alert('Loaded ' + parsed.length + ' questions');
+          }catch(err){
+            alert('Could not parse JSON: ' + err.message);
+          }
+        }
+        reader.readAsText(f);
+      });
+
+      // Demo questions
+      const demoSet = [
+        { id:1, q:'Which language runs in a web browser?', choices:['Java','C','Python','JavaScript'], answer:3, explanation:'JavaScript is the language of the web.' },
+        { id:2, q:'What does CSS stand for?', choices:['Central Style Sheets','Cascading Style Sheets','Cascading Simple Sheets','Cars SUVs Sailboats'], answer:1, explanation:'CSS stands for Cascading Style Sheets.' },
+        { id:3, q:'What does HTML stand for?', choices:['Hyper Text Markup Language','Hyperlinks and Text Markup Language','Home Tool Markup Language','Hyper Tool Markup Language'], answer:0, explanation:'HTML stands for Hyper Text Markup Language.' },
+        { id:4, q:'Which company developed React?', choices:['Google','Facebook (Meta)','Microsoft','Twitter'], answer:1, explanation:'React was developed by Meta (formerly Facebook).'},
+        { id:5, q:'Which symbol is used for comments in JavaScript (single-line)?', choices:['/*','//','--','#'], answer:1, explanation:'Single-line comments use //. Multi-line use /* ... */'}
+      ];
+
+      demoBtn.addEventListener('click', ()=> loadQuestions(demoSet));
+      restartBtn.addEventListener('click', ()=>{
+        if(!state.questions.length) return; state.current = 0; state.answered = {}; state.score = 0; render();
+      });
+      shuffleBtn.addEventListener('click', ()=>{
+        if(!state.questions.length) return; shuffle(state.questions); state.current = 0; state.answered = {}; state.score = 0; render();
+      });
+
+      // initialize
+      render();
+
+      // expose simple API for dynamic loading via JS console if needed
+      window.QuizApp = {
+        load: loadQuestions,
+        getState: ()=>JSON.parse(JSON.stringify(state))
+      };
+    })();
+  </script>
+</body>
+</html>
